@@ -80,7 +80,7 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 	zend_string *str, *filename;
 	char dt[3] = "Ymd";
 	char f[1];
-	int i, n;
+	int i, n, len;
 	switch(logger_rotate_intval(Z_STRVAL(rotate))) {
 		case LOGGER_ROTATE_DAILY:
 			n = 3;
@@ -114,27 +114,30 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 	str = zend_string_init("-", 1, 0);
 	php_implode(str, &pool, &rv);
 
+	zval_ptr_dtor(&pool);
+	zval_ptr_dtor(&rotate);
+	zend_string_release(str);
+
 	filename = zend_string_init(Z_STRVAL(filepath), Z_STRLEN(filepath), 0);
 	filename = zend_string_concat(filename, "/");
 	filename = zend_string_concat(filename, Z_STRVAL(rv));
 	filename = zend_string_concat(filename, LOGGER_FILENAME_AFTERFIX);
-	//php_printf("filename: %s\n", ZSTR_VAL(filename));
 
+	zval_ptr_dtor(&rv);
+	//php_printf("filename: %s\n", ZSTR_VAL(filename));
 	stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
+
+	zval_ptr_dtor(&filepath);
+	zend_string_release(filename);
+
 	if (stream == NULL) return FAILURE;
+	len = ZSTR_LEN(message);
 	message = zend_string_concat(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
 	php_stream_close(stream);
 
-	zval_ptr_dtor(&rv);
-	zval_ptr_dtor(&pool);
-	zval_ptr_dtor(&rotate);
-	zval_ptr_dtor(&filepath);
-	zend_string_release(str);
 	zend_string_release(message);
-	zend_string_release(filename);
-
-	return SUCCESS;
+	return len;
 }
 
 PHP_METHOD(logger, info)
