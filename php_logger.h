@@ -12,11 +12,21 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author:                                                              |
+  | Author: eastwood<boss@haowei.me>                                     |
   +----------------------------------------------------------------------+
 */
 
 /* $Id$ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "php.h"
+#include "php_ini.h"
+#include <ext/date/php_date.h>
+#include <ext/standard/info.h>
+#include <ext/standard/php_filestat.h>
 
 #ifndef PHP_LOGGER_H
 #define PHP_LOGGER_H
@@ -79,28 +89,43 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #define LOGGER_CLASS_NS_NAME 		"EastWood\\Log\\Logger"
 #define LOGGER_CLASS_SHORT_NAME 	"Logger"
 
+#define LOGGER_FILENAME_PREFIX      "app"
+#define LOGGER_FILENAME_AFTERFIX    ".log"
+
 #define LOGGER_LEVEL_INFO 			0
 #define LOGGER_LEVEL_WARNING 		1
 #define LOGGER_LEVEL_ERROR 			2
 #define LOGGER_LEVEL_DEBUG 			3
 #define LOGGER_LEVEL_VERBOSE 		4
 
-#define LOGGER_ROTATE_DAILY			"daily"
-#define	LOGGER_ROTATE_MONTH			"month"
-#define	LOGGER_ROTATE_YEAR			"year"
+#define LOGGER_ROTATE_DAILY			0
+#define	LOGGER_ROTATE_MONTH			1
+#define	LOGGER_ROTATE_YEAR			2
 
-extern zend_string *zend_string_append(zend_string *str1, const char *str2)
+static int logger_rotate_intval(const char *str)
 {
-	int offset = ZSTR_LEN(str1);
-	zend_string *rv = zend_string_extend(str1,  ZSTR_LEN(str1) + strlen(str2) + 1, 0);
-	do{
-		ZSTR_VAL(rv)[offset++] = *str2;
-	}while(*str2++);
-	ZSTR_VAL(rv)[offset++] = '\0';
-	return rv;
+    if (strcmp(str, "daily") == 0) {
+        return 0;
+    }else if (strcmp(str, "month") == 0) {
+        return 1;
+    }else if (strcmp(str, "year") == 0) {
+        return 2;
+    }
+    return -1;
 }
 
-extern zval* call_user_func(const char *func_name, int num, zval param[])
+static zend_string *zend_string_concat(zend_string *str1, const char *str2)
+{
+    zval v;
+    ZVAL_STRING(&v, str2);
+    zend_string *str;
+    str = zend_string_init(strcat(ZSTR_VAL(str1), str2), ZSTR_LEN(str1) + Z_STRLEN(v), 0);
+    zend_string_release(str1);
+    zval_ptr_dtor(&v);
+    return str;
+}
+
+static zval* call_user_func(const char *func_name, int num, zval param[])
 {
 	zval rv, function, *rv_ptr;
 	ZVAL_STRING(&function, func_name);

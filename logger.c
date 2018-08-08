@@ -18,15 +18,7 @@
 
 /* $Id$ */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
-#include "php_ini.h"
-#include "ext/standard/info.h"
 #include "php_logger.h"
-
 
 PHP_INI_BEGIN()
 	PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
@@ -63,56 +55,84 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 		return FAILURE;
 	}
 
-	zval rv, param[0];
-	ZVAL_STRING(&param[0], INI_STR("logger.path"));
-	php_stat(Z_STRVAL(param[0]), Z_STRLEN(param[0]), FS_IS_DIR, &rv);
+	zval rv, pool, filepath, rotate;
+	ZVAL_STRING(&filepath, INI_STR("logger.path"));
+	php_stat(Z_STRVAL(filepath), Z_STRLEN(filepath), FS_IS_DIR, &rv);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
-		if (!php_stream_mkdir(Z_STRVAL(param[0]), 0755, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
-			php_error_docref(NULL, E_ERROR, "EastWood Log directory creation failed %s", Z_STRVAL(param[0]));
+		if (!php_stream_mkdir(Z_STRVAL(filepath), 0755, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
+			php_error_docref(NULL, E_ERROR, "EastWood Log directory creation failed %s", Z_STRVAL(filepath));
 			return FAILURE;
 		}
 	}
 
-	php_stat(Z_STRVAL(param[0]), Z_STRLEN(param[0]), FS_IS_W, &rv);
+	php_stat(Z_STRVAL(filepath), Z_STRLEN(filepath), FS_IS_W, &rv);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
-		php_error_docref(NULL, E_ERROR, "EastWood Log directory is reject write permission %s", Z_STRVAL(param[0]));
+		php_error_docref(NULL, E_ERROR, "EastWood Log directory is reject write permission %s", Z_STRVAL(filepath));
 		return FAILURE;
 	}
 
-	//zval rv;
-	zval pool;
-	//zend_string *str;
 	array_init(&pool);
-	add_next_index_string(&pool, "app");
+	add_next_index_string(&pool, LOGGER_FILENAME_PREFIX);
 
-	zend_string *str = php_format_date("Y", 1, 0, 0);
-	php_var_dump("date %%Y %s\n", ZSTR_VAL(str));
+	ZVAL_STRING(&rotate, INI_STR("logger.rotate"));
 
-	/*switch(INI_STR("logger.rotate")) {
+	//php_printf("rotate: %d\n", logger_rotate_intval(Z_STRVAL(rotate)));
+	zend_string *str, *filename;
+	char dt[3] = "Ymd";
+	char f[1];
+	int i, n;
+	switch(logger_rotate_intval(Z_STRVAL(rotate))) {
 		case LOGGER_ROTATE_DAILY:
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));	
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("m", 1, time(NULL), 1)));
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("d", 1, time(NULL), 1)));
+			n = 3;
+			for(i = 0; i < n; i++) {
+				f[0] = dt[i];
+				str = php_format_date(f, 1, time(NULL), 1);
+				add_next_index_string(&pool, ZSTR_VAL(str));
+				zend_string_release(str);
+			}
 			break;
 		case LOGGER_ROTATE_MONTH:
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("m", 1, time(NULL), 1)));
+			n = 2;
+			for(i = 0; i < n; i++) {
+				f[0] = dt[i];
+				str = php_format_date(f, 1, time(NULL), 1);
+				add_next_index_string(&pool, ZSTR_VAL(str));
+				zend_string_release(str);
+			}
 			break;
 		case LOGGER_ROTATE_YEAR:
-			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));
+			n = 1;
+			for(i = 0; i < n; i++) {
+				f[0] = dt[i];
+				str = php_format_date(f, 1, time(NULL), 1);
+				add_next_index_string(&pool, ZSTR_VAL(str));
+				zend_string_release(str);
+			}
 			break;
-	}*/
+	}
 
-	//php_implode(zend_string_init("||", 2, 0), &pool, &rv);
-	//php_printf("%s\n", Z_STRVAL(rv));
+	str = zend_string_init("-", 1, 0);
+	php_implode(str, &pool, &rv);
 
-	/*zend_string *path = zend_string_init(Z_STRVAL(param[0]), Z_STRLEN(param[0]), 0);
-	path = zend_string_append(path, filename);
-	stream = php_stream_open_wrapper(ZSTR_VAL(path), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
+	filename = zend_string_init(Z_STRVAL(filepath), Z_STRLEN(filepath), 0);
+	filename = zend_string_concat(filename, "/");
+	filename = zend_string_concat(filename, Z_STRVAL(rv));
+	filename = zend_string_concat(filename, LOGGER_FILENAME_AFTERFIX);
+	//php_printf("filename: %s\n", ZSTR_VAL(filename));
+
+	stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
 	if (stream == NULL) return FAILURE;
-	message = zend_string_append(message, "\n");
+	message = zend_string_concat(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
-	php_stream_close(stream);*/
+	php_stream_close(stream);
+
+	zval_ptr_dtor(&rv);
+	zval_ptr_dtor(&pool);
+	zval_ptr_dtor(&rotate);
+	zval_ptr_dtor(&filepath);
+	zend_string_release(str);
+	zend_string_release(message);
+	zend_string_release(filename);
 
 	return SUCCESS;
 }
@@ -154,6 +174,7 @@ PHP_MINIT_FUNCTION(logger)
 
 PHP_MSHUTDOWN_FUNCTION(logger)
 {
+	UNREGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 
