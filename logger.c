@@ -7,6 +7,13 @@
 #include "ext/standard/info.h"
 #include "php_logger.h"
 
+PHP_INI_BEGIN()
+	PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
+	PHP_INI_ENTRY("logger.rotate", "", PHP_INI_ALL, NULL)
+	PHP_INI_ENTRY("logger.format", "", PHP_INI_ALL, NULL)
+	PHP_INI_ENTRY("logger.application", "", PHP_INI_ALL, NULL)
+PHP_INI_END()
+
 const zend_function_entry logger_methods[] = {
 	//PHP_ME(logger, set, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	//PHP_ME(logger, step, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
@@ -38,11 +45,11 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 	}
 
 	zval rv, param[0];
-	ZVAL_STRING(&param[0], "/data1/logs");
+	ZVAL_STRING(&param[0], INI_STR("logger.path"));
 	php_stat(Z_STRVAL(param[0]), Z_STRLEN(param[0]), FS_IS_DIR, &rv);
 	//php_var_dump(&rv, 1);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
-		if (!php_stream_mkdir(Z_STRVAL(param[0]), 0755, PHP_STREAM_MKDIR_RECURSIVE|REPORT_ERRORS, NULL)) {
+		if (!php_stream_mkdir(Z_STRVAL(param[0]), 0755, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
 			php_error_docref(NULL, E_ERROR, "EastWood Log directory creation failed %s", Z_STRVAL(param[0]));
 			return FAILURE;
 		}
@@ -57,7 +64,7 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 
 	zend_string *path = zend_string_init(Z_STRVAL(param[0]), Z_STRLEN(param[0]), 0);
 	path = zend_string_append(path, "/abc.log");
-	stream = php_stream_open_wrapper(ZSTR_VAL(path), "ab", REPORT_ERRORS|IGNORE_PATH|IGNORE_URL_WIN, NULL);
+	stream = php_stream_open_wrapper(ZSTR_VAL(path), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
 	if (stream == NULL) return FAILURE;
 	message = zend_string_append(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
@@ -93,6 +100,8 @@ PHP_METHOD(logger, verbose)
 
 PHP_MINIT_FUNCTION(logger)
 {
+	REGISTER_INI_ENTRIES();
+	
 	INIT_CLASS_ENTRY(ce, LOGGER_CLASS_NS_NAME, logger_methods);
 	logger_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	zend_register_class_alias(LOGGER_CLASS_SHORT_NAME, logger_ce);
@@ -120,8 +129,12 @@ PHP_RSHUTDOWN_FUNCTION(logger)
 PHP_MINFO_FUNCTION(logger)
 {
 	php_info_print_table_start();
-	php_info_print_table_header(2, "logger support", "enabled");
+	//php_info_print_table_header(2, "logger support", "enabled");
+	php_info_print_table_row(2, "logger support", "enabled");
+	php_info_print_table_row(2, "logger version", PHP_LOGGER_VERSION);
+	php_info_print_table_row(2, "logger author", "eastwood<boss@haowei.me>");
 	php_info_print_table_end();
+	DISPLAY_INI_ENTRIES();
 }
 
 zend_module_entry logger_module_entry = {
