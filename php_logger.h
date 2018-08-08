@@ -58,34 +58,6 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #endif
 
 
-#ifndef FS_IS_W
-#	define FS_IS_W		9
-#endif
-
-#ifndef FS_IS_R
-#	define FS_IS_R		10
-#endif
-
-#ifndef FS_IS_X
-#	define FS_IS_X		11
-#endif
-
-#ifndef FS_IS_FILE
-#	define FS_IS_FILE 	12
-#endif
-
-#ifndef FS_IS_DIR
-#	define FS_IS_DIR	13
-#endif
-
-#ifndef FS_IS_LINK
-#	define FS_IS_LINK	14
-#endif
-
-#ifndef FS_EXISTS
-#	define FS_EXISTS	15
-#endif
-
 #define LOGGER_CLASS_NS_NAME 		"EastWood\\Log\\Logger"
 #define LOGGER_CLASS_SHORT_NAME 	"Logger"
 
