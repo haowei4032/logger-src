@@ -1,3 +1,23 @@
+/*
+  +----------------------------------------------------------------------+
+  | PHP Version 7                                                        |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 1997-2018 The PHP Group                                |
+  +----------------------------------------------------------------------+
+  | This source file is subject to version 3.01 of the PHP license,      |
+  | that is bundled with this package in the file LICENSE, and is        |
+  | available through the world-wide-web at the following url:           |
+  | http://www.php.net/license/3_01.txt                                  |
+  | If you did not receive a copy of the PHP license and are unable to   |
+  | obtain it through the world-wide-web, please send a note to          |
+  | license@php.net so we can mail you a copy immediately.               |
+  +----------------------------------------------------------------------+
+  | Author: eastwood<boss@haowei.me>                                                             |
+  +----------------------------------------------------------------------+
+*/
+
+/* $Id$ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -7,16 +27,15 @@
 #include "ext/standard/info.h"
 #include "php_logger.h"
 
+
 PHP_INI_BEGIN()
 	PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
-	PHP_INI_ENTRY("logger.rotate", "", PHP_INI_ALL, NULL)
+	PHP_INI_ENTRY("logger.rotate", "daily", PHP_INI_ALL, NULL)
 	PHP_INI_ENTRY("logger.format", "", PHP_INI_ALL, NULL)
 	PHP_INI_ENTRY("logger.application", "", PHP_INI_ALL, NULL)
 PHP_INI_END()
 
 const zend_function_entry logger_methods[] = {
-	//PHP_ME(logger, set, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	//PHP_ME(logger, step, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(logger, info, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(logger, warning, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(logger, error, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
@@ -47,7 +66,6 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 	zval rv, param[0];
 	ZVAL_STRING(&param[0], INI_STR("logger.path"));
 	php_stat(Z_STRVAL(param[0]), Z_STRLEN(param[0]), FS_IS_DIR, &rv);
-	//php_var_dump(&rv, 1);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
 		if (!php_stream_mkdir(Z_STRVAL(param[0]), 0755, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
 			php_error_docref(NULL, E_ERROR, "EastWood Log directory creation failed %s", Z_STRVAL(param[0]));
@@ -56,19 +74,45 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 	}
 
 	php_stat(Z_STRVAL(param[0]), Z_STRLEN(param[0]), FS_IS_W, &rv);
-	//php_var_dump(&rv, 1);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
 		php_error_docref(NULL, E_ERROR, "EastWood Log directory is reject write permission %s", Z_STRVAL(param[0]));
 		return FAILURE;
 	}
 
-	zend_string *path = zend_string_init(Z_STRVAL(param[0]), Z_STRLEN(param[0]), 0);
-	path = zend_string_append(path, "/abc.log");
+	//zval rv;
+	zval pool;
+	//zend_string *str;
+	array_init(&pool);
+	add_next_index_string(&pool, "app");
+
+	zend_string *str = php_format_date("Y", 1, 0, 0);
+	php_var_dump("date %%Y %s\n", ZSTR_VAL(str));
+
+	/*switch(INI_STR("logger.rotate")) {
+		case LOGGER_ROTATE_DAILY:
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));	
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("m", 1, time(NULL), 1)));
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("d", 1, time(NULL), 1)));
+			break;
+		case LOGGER_ROTATE_MONTH:
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("m", 1, time(NULL), 1)));
+			break;
+		case LOGGER_ROTATE_YEAR:
+			add_next_index_zval(&pool, ZSTR_VAL(php_format_date("Y", 1, time(NULL), 1)));
+			break;
+	}*/
+
+	//php_implode(zend_string_init("||", 2, 0), &pool, &rv);
+	//php_printf("%s\n", Z_STRVAL(rv));
+
+	/*zend_string *path = zend_string_init(Z_STRVAL(param[0]), Z_STRLEN(param[0]), 0);
+	path = zend_string_append(path, filename);
 	stream = php_stream_open_wrapper(ZSTR_VAL(path), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
 	if (stream == NULL) return FAILURE;
 	message = zend_string_append(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
-	php_stream_close(stream);
+	php_stream_close(stream);*/
 
 	return SUCCESS;
 }
@@ -101,7 +145,7 @@ PHP_METHOD(logger, verbose)
 PHP_MINIT_FUNCTION(logger)
 {
 	REGISTER_INI_ENTRIES();
-	
+
 	INIT_CLASS_ENTRY(ce, LOGGER_CLASS_NS_NAME, logger_methods);
 	logger_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	zend_register_class_alias(LOGGER_CLASS_SHORT_NAME, logger_ce);
@@ -129,7 +173,6 @@ PHP_RSHUTDOWN_FUNCTION(logger)
 PHP_MINFO_FUNCTION(logger)
 {
 	php_info_print_table_start();
-	//php_info_print_table_header(2, "logger support", "enabled");
 	php_info_print_table_row(2, "logger support", "enabled");
 	php_info_print_table_row(2, "logger version", PHP_LOGGER_VERSION);
 	php_info_print_table_row(2, "logger author", "eastwood<boss@haowei.me>");

@@ -1,19 +1,19 @@
 /*
-	+----------------------------------------------------------------------+
-	| PHP Version 7                                                        |
-	+----------------------------------------------------------------------+
-	| Copyright (c) 1997-2018 The PHP Group                                |
-	+----------------------------------------------------------------------+
-	| This source file is subject to version 3.01 of the PHP license,      |
-	| that is bundled with this package in the file LICENSE, and is        |
-	| available through the world-wide-web at the following url:           |
-	| http://www.php.net/license/3_01.txt                                  |
-	| If you did not receive a copy of the PHP license and are unable to   |
-	| obtain it through the world-wide-web, please send a note to          |
-	| license@php.net so we can mail you a copy immediately.               |
-	+----------------------------------------------------------------------+
-	| Author:                                                              |
-	+----------------------------------------------------------------------+
+  +----------------------------------------------------------------------+
+  | PHP Version 7                                                        |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 1997-2018 The PHP Group                                |
+  +----------------------------------------------------------------------+
+  | This source file is subject to version 3.01 of the PHP license,      |
+  | that is bundled with this package in the file LICENSE, and is        |
+  | available through the world-wide-web at the following url:           |
+  | http://www.php.net/license/3_01.txt                                  |
+  | If you did not receive a copy of the PHP license and are unable to   |
+  | obtain it through the world-wide-web, please send a note to          |
+  | license@php.net so we can mail you a copy immediately.               |
+  +----------------------------------------------------------------------+
+  | Author:                                                              |
+  +----------------------------------------------------------------------+
 */
 
 /* $Id$ */
@@ -47,8 +47,9 @@ ZEND_TSRMLS_CACHE_EXTERN()
 
 #endif
 
+
 #ifndef FS_IS_W
-#	define FS_IS_W	9
+#	define FS_IS_W		9
 #endif
 
 #ifndef FS_IS_R
@@ -84,6 +85,9 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #define LOGGER_LEVEL_DEBUG 			3
 #define LOGGER_LEVEL_VERBOSE 		4
 
+#define LOGGER_ROTATE_DAILY			"daily"
+#define	LOGGER_ROTATE_MONTH			"month"
+#define	LOGGER_ROTATE_YEAR			"year"
 
 extern zend_string *zend_string_append(zend_string *str1, const char *str2)
 {
@@ -112,7 +116,6 @@ PHP_METHOD(logger, warning);
 PHP_METHOD(logger, error);
 PHP_METHOD(logger, debug);
 PHP_METHOD(logger, verbose);
-
 
 /*
  * Local variables:
