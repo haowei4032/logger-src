@@ -70,41 +70,9 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #define LOGGER_LEVEL_DEBUG 			3
 #define LOGGER_LEVEL_VERBOSE 		4
 
-#define LOGGER_ROTATE_DAILY			0
-#define	LOGGER_ROTATE_MONTH			1
-#define	LOGGER_ROTATE_YEAR			2
-
-static int logger_rotate_intval(const char *str)
-{
-    if (strcmp(str, "daily") == 0) {
-        return 0;
-    }else if (strcmp(str, "month") == 0) {
-        return 1;
-    }else if (strcmp(str, "year") == 0) {
-        return 2;
-    }
-    return -1;
-}
-
-static zend_string *zend_string_concat(zend_string *str1, const char *str2)
-{
-    zval v;
-    ZVAL_STRING(&v, str2);
-    zend_string *str;
-    str = zend_string_init(strcat(ZSTR_VAL(str1), str2), ZSTR_LEN(str1) + Z_STRLEN(v), 0);
-    zend_string_release(str1);
-    zval_ptr_dtor(&v);
-    return str;
-}
-
-static zval* call_user_func(const char *func_name, int num, zval param[])
-{
-	zval rv, function, *rv_ptr;
-	ZVAL_STRING(&function, func_name);
-	call_user_function(EG(function_table), NULL, &function, &rv, num, param);
-	rv_ptr = &rv;
-	return rv_ptr;
-}
+#define LOGGER_ROTATE_YEAR          0
+#define LOGGER_ROTATE_MONTH         1
+#define LOGGER_ROTATE_DAILY			2
 
 static zend_class_entry *logger_ce, ce;
 
@@ -113,6 +81,44 @@ PHP_METHOD(logger, warning);
 PHP_METHOD(logger, error);
 PHP_METHOD(logger, debug);
 PHP_METHOD(logger, verbose);
+
+static int logger_rotate_intval(const char *str)
+{
+    if (strcmp(str, "daily") == 0) {
+        return LOGGER_ROTATE_DAILY;
+    }else if (strcmp(str, "month") == 0) {
+        return LOGGER_ROTATE_MONTH;
+    }else if (strcmp(str, "year") == 0) {
+        return LOGGER_ROTATE_YEAR;
+    }
+    return -1;
+}
+
+static zend_string *zend_string_concat(zend_string *str1, const char *str2)
+{
+    zend_string *rv;
+    rv = zend_strpprintf(0, "%s%s", ZSTR_VAL(str1), str2);
+    zend_string_release(str1);
+    return rv;
+}
+
+static zend_string *zend_string_concat_ex(zend_string *str, int count, ...)
+{
+    va_list ap;
+    va_start(ap, count);
+    while(count--) str = zend_string_concat(str, va_arg(ap, char*));
+    va_end(ap);
+    return str;
+}
+
+static zval* call_user_func(const char *func_name, int num, zval param[])
+{
+    zval rv, function, *rv_ptr;
+    ZVAL_STRING(&function, func_name);
+    call_user_function(EG(function_table), NULL, &function, &rv, num, param);
+    rv_ptr = &rv;
+    return rv_ptr;
+}
 
 /*
  * Local variables:

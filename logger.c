@@ -22,7 +22,7 @@
 
 PHP_INI_BEGIN()
 	PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
-	PHP_INI_ENTRY("logger.rotate", "daily", PHP_INI_ALL, NULL)
+	PHP_INI_ENTRY("logger.rotate", "", PHP_INI_ALL, NULL)
 	PHP_INI_ENTRY("logger.format", "", PHP_INI_ALL, NULL)
 	PHP_INI_ENTRY("logger.application", "", PHP_INI_ALL, NULL)
 PHP_INI_END()
@@ -42,9 +42,13 @@ const zend_function_entry logger_functions[] = {
 
 static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 {
+	int i, n, len;
+	char format[1];
+	char date_format[3] = "Ymd";
+
 	php_stream *stream;
-	zend_string *tag;
-	zend_string *message;
+	zval rv, pool, filepath, rotate;
+	zend_string *tag, *message, *str, *filename;
 
 	if (ZEND_NUM_ARGS() < 2) {
 		php_error_docref(NULL, E_ERROR, "expects exactly 2 parameters, %d given", ZEND_NUM_ARGS());
@@ -55,7 +59,6 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 		return FAILURE;
 	}
 
-	zval rv, pool, filepath, rotate;
 	ZVAL_STRING(&filepath, INI_STR("logger.path"));
 	php_stat(Z_STRVAL(filepath), Z_STRLEN(filepath), FS_IS_DIR, &rv);
 	if (Z_TYPE_P(&rv) == IS_FALSE) {
@@ -76,67 +79,39 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 
 	ZVAL_STRING(&rotate, INI_STR("logger.rotate"));
 
-	//php_printf("rotate: %d\n", logger_rotate_intval(Z_STRVAL(rotate)));
-	zend_string *str, *filename;
-	char dt[3] = "Ymd";
-	char f[1];
-	int i, n, len;
-	switch(logger_rotate_intval(Z_STRVAL(rotate))) {
-		case LOGGER_ROTATE_DAILY:
-			n = 3;
-			for(i = 0; i < n; i++) {
-				f[0] = dt[i];
-				str = php_format_date(f, 1, time(NULL), 1);
-				add_next_index_string(&pool, ZSTR_VAL(str));
-				zend_string_release(str);
-			}
-			break;
-		case LOGGER_ROTATE_MONTH:
-			n = 2;
-			for(i = 0; i < n; i++) {
-				f[0] = dt[i];
-				str = php_format_date(f, 1, time(NULL), 1);
-				add_next_index_string(&pool, ZSTR_VAL(str));
-				zend_string_release(str);
-			}
-			break;
-		case LOGGER_ROTATE_YEAR:
-			n = 1;
-			for(i = 0; i < n; i++) {
-				f[0] = dt[i];
-				str = php_format_date(f, 1, time(NULL), 1);
-				add_next_index_string(&pool, ZSTR_VAL(str));
-				zend_string_release(str);
-			}
-			break;
+	for(i = 0; i <= logger_rotate_intval(Z_STRVAL(rotate)); i++) {
+		format[0] = date_format[i];
+		str = php_format_date(format, 1, time(NULL), 1);
+		add_next_index_string(&pool, ZSTR_VAL(str));
+		zend_string_release(str);
 	}
 
 	str = zend_string_init("-", 1, 0);
 	php_implode(str, &pool, &rv);
-
-	zval_ptr_dtor(&pool);
-	zval_ptr_dtor(&rotate);
 	zend_string_release(str);
 
-	filename = zend_string_init(Z_STRVAL(filepath), Z_STRLEN(filepath), 0);
-	filename = zend_string_concat(filename, "/");
-	filename = zend_string_concat(filename, Z_STRVAL(rv));
-	filename = zend_string_concat(filename, LOGGER_FILENAME_AFTERFIX);
+	str = zend_string_init(Z_STRVAL(filepath), Z_STRLEN(filepath), 0);
+	filename = zend_string_concat_ex(str, 3, "/", Z_STRVAL(rv), LOGGER_FILENAME_AFTERFIX);
 
-	zval_ptr_dtor(&rv);
-	//php_printf("filename: %s\n", ZSTR_VAL(filename));
 	stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
-
-	zval_ptr_dtor(&filepath);
-	zend_string_release(filename);
-
 	if (stream == NULL) return FAILURE;
+
 	len = ZSTR_LEN(message);
 	message = zend_string_concat(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
 	php_stream_close(stream);
 
+	//php_printf("filename: %s\n", ZSTR_VAL(filename));
+
+	zend_string_release(str);
 	zend_string_release(message);
+	zend_string_release(filename);
+	
+	zval_ptr_dtor(&rv);
+	zval_ptr_dtor(&pool);
+	zval_ptr_dtor(&rotate);
+	zval_ptr_dtor(&filepath);
+
 	return len;
 }
 
@@ -223,12 +198,3 @@ ZEND_TSRMLS_CACHE_DEFINE()
 #endif
 ZEND_GET_MODULE(logger)
 #endif
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */
