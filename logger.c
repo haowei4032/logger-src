@@ -40,6 +40,14 @@ const zend_function_entry logger_functions[] = {
     PHP_FE_END
 };
 
+static void logger_init()
+{
+	zval init;
+	array_init_size(&init, 0);
+	zend_update_static_property(logger_ce, ZEND_STRL(LOGGER_CLASS_PROPERTY_NAME), &init TSRMLS_CC);
+	zval_ptr_dtor(&init);
+}
+
 static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 {
 	int i, n, len;
@@ -157,6 +165,7 @@ PHP_MINIT_FUNCTION(logger)
 
 	INIT_CLASS_ENTRY(ce, LOGGER_CLASS_NS_NAME, logger_methods);
 	logger_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_declare_property_null(logger_ce, ZEND_STRL(LOGGER_CLASS_PROPERTY_NAME), ZEND_ACC_STATIC|ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_register_class_alias(LOGGER_CLASS_SHORT_NAME, logger_ce);
 	return SUCCESS;
 }
@@ -172,6 +181,7 @@ PHP_RINIT_FUNCTION(logger)
 #if defined(COMPILE_DL_LOGGER) && defined(ZTS)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+	logger_init();
 	return SUCCESS;
 }
 

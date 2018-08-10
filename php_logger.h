@@ -60,6 +60,7 @@ ZEND_TSRMLS_CACHE_EXTERN()
 
 #define LOGGER_CLASS_NS_NAME 		"EastWood\\Log\\Logger"
 #define LOGGER_CLASS_SHORT_NAME 	"Logger"
+#define LOGGER_CLASS_PROPERTY_NAME  "settings"
 
 #define LOGGER_FILENAME_PREFIX      "app"
 #define LOGGER_FILENAME_AFTERFIX    ".log"
