@@ -92,6 +92,18 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 
 	str = zend_string_init(Z_STRVAL(filepath), Z_STRLEN(filepath), 0);
 	filename = zend_string_concat_ex(str, 3, "/", Z_STRVAL(rv), LOGGER_FILENAME_AFTERFIX);
+	zval_ptr_dtor(&rv);
+
+	php_stat(ZSTR_VAL(filename), ZSTR_LEN(filename), FS_IS_FILE, &rv);
+	if (Z_TYPE_P(&rv) == IS_TRUE) {
+		
+		zval_ptr_dtor(&rv);
+		php_stat(ZSTR_VAL(filename), ZSTR_LEN(filename), FS_IS_W, &rv);
+		if (Z_TYPE_P(&rv) == IS_FALSE) {
+			php_error_docref(NULL, E_ERROR, "EastWood Log file is reject write permission %s", ZSTR_VAL(filename));
+			return FAILURE;
+		}
+	}
 
 	stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
 	if (stream == NULL) return FAILURE;
