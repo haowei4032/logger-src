@@ -49,7 +49,13 @@ extern zend_module_entry logger_module_entry;
 #endif
 
 
-#define LOGGER_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(logger, v)
+//#define LOGGER_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(logger, v)
+
+#ifdef ZTS
+#define LOGGER_G(v) TSRMG(logger_globals_id, zend_logger_globals *, v)
+#else
+#define LOGGER_G(v) (logger_globals.v)
+#endif
 
 #if defined(ZTS) && defined(COMPILE_DL_LOGGER)
 ZEND_TSRMLS_CACHE_EXTERN()
@@ -58,30 +64,56 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #endif
 
 
-#define LOGGER_CLASS_NS_NAME 		"EastWood\\Log\\Logger"
-#define LOGGER_CLASS_SHORT_NAME 	"Logger"
-#define LOGGER_CLASS_PROPERTY_NAME  "settings"
+#define LOGGER_CLASS_NS_NAME            "EastWood\\Log\\Logger"
+#define LOGGER_CLASS_SHORT_NAME         "Logger"
+#define LOGGER_CLASS_PROPERTY_NAME      "settings"
 
-#define LOGGER_FILENAME_PREFIX      "app"
-#define LOGGER_FILENAME_AFTERFIX    ".log"
+#define LOGGER_FILENAME_PREFIX          "app"
+#define LOGGER_FILENAME_AFTERFIX        ".log"
 
-#define LOGGER_LEVEL_INFO 			0
-#define LOGGER_LEVEL_WARNING 		1
-#define LOGGER_LEVEL_ERROR 			2
-#define LOGGER_LEVEL_DEBUG 			3
-#define LOGGER_LEVEL_VERBOSE 		4
+#define LOGGER_LEVEL_INFO               0
+#define LOGGER_LEVEL_WARNING            1
+#define LOGGER_LEVEL_ERROR              2
+#define LOGGER_LEVEL_DEBUG              3
+#define LOGGER_LEVEL_VERBOSE            4
 
-#define LOGGER_ROTATE_YEAR          0
-#define LOGGER_ROTATE_MONTH         1
-#define LOGGER_ROTATE_DAILY			2
+#define LOGGER_ROTATE_YEAR              0
+#define LOGGER_ROTATE_MONTH             1
+#define LOGGER_ROTATE_DAILY			        2
 
 static zend_class_entry *logger_ce, ce;
+
+ZEND_BEGIN_MODULE_GLOBALS(logger)
+  zval async_stack;
+ZEND_END_MODULE_GLOBALS(logger)
+
+ZEND_DECLARE_MODULE_GLOBALS(logger)
 
 PHP_METHOD(logger, info);
 PHP_METHOD(logger, warning);
 PHP_METHOD(logger, error);
 PHP_METHOD(logger, debug);
 PHP_METHOD(logger, verbose);
+
+PHP_INI_BEGIN()
+  PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
+  PHP_INI_ENTRY("logger.rotate", "", PHP_INI_ALL, NULL)
+  PHP_INI_ENTRY("logger.format", "", PHP_INI_ALL, NULL)
+  PHP_INI_ENTRY("logger.application", "", PHP_INI_ALL, NULL)
+PHP_INI_END()
+
+const zend_function_entry logger_methods[] = {
+  PHP_ME(logger, info, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+  PHP_ME(logger, warning, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+  PHP_ME(logger, error, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+  PHP_ME(logger, debug, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+  PHP_ME(logger, verbose, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+  PHP_FE_END
+};
+
+const zend_function_entry logger_functions[] = {
+    PHP_FE_END
+};
 
 static int logger_rotate_intval(const char *str)
 {

@@ -20,25 +20,32 @@
 
 #include "php_logger.h"
 
-PHP_INI_BEGIN()
-	PHP_INI_ENTRY("logger.path", "/var/log", PHP_INI_ALL, NULL)
-	PHP_INI_ENTRY("logger.rotate", "", PHP_INI_ALL, NULL)
-	PHP_INI_ENTRY("logger.format", "", PHP_INI_ALL, NULL)
-	PHP_INI_ENTRY("logger.application", "", PHP_INI_ALL, NULL)
-PHP_INI_END()
+static void php_logger_init_globals(zend_logger_globals *logger_globals TSRMLS_DC)
+{}
 
-const zend_function_entry logger_methods[] = {
-	PHP_ME(logger, info, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(logger, warning, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(logger, error, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(logger, debug, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(logger, verbose, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_FE_END
-};
+static void logger_clean()
+{
+	/*zval *val;
+	php_stream *stream;
+	stream = php_stream_open_wrapper("/var/log/app-2018-08-11.log", "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
+	if (stream == NULL) return;
+	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(&LOGGER_G(async_stack)), val) {
+		php_stream_write(stream, Z_STRVAL(val), Z_STRLEN(val));
+	} ZEND_HASH_FOREACH_END();
 
-const zend_function_entry logger_functions[] = {
-    PHP_FE_END
-};
+	php_stream_close(stream);*/
+
+	zval *val;
+	php_stream *stream;
+	stream = php_stream_open_wrapper("/var/log/app-2018-08-11.log", "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
+	if (stream == NULL) return;
+	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(&LOGGER_G(async_stack)), val) {
+		php_printf("%s\n", Z_STRVAL_P(val));
+	} ZEND_HASH_FOREACH_END();
+	php_stream_close(stream);
+
+	zval_ptr_dtor(&LOGGER_G(async_stack));
+}
 
 static void logger_init()
 {
@@ -46,6 +53,8 @@ static void logger_init()
 	array_init_size(&init, 0);
 	zend_update_static_property(logger_ce, ZEND_STRL(LOGGER_CLASS_PROPERTY_NAME), &init TSRMLS_CC);
 	zval_ptr_dtor(&init);
+
+	array_init_size(&LOGGER_G(async_stack), 0);
 }
 
 static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
@@ -112,15 +121,15 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 		}
 	}
 
-	stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
+	add_next_index_string(&LOGGER_G(async_stack), ZSTR_VAL(message));
+
+	/*stream = php_stream_open_wrapper(ZSTR_VAL(filename), "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
 	if (stream == NULL) return FAILURE;
 
 	len = ZSTR_LEN(message);
 	message = zend_string_concat(message, "\n");
 	php_stream_write(stream, ZSTR_VAL(message), ZSTR_LEN(message));
-	php_stream_close(stream);
-
-	//php_printf("filename: %s\n", ZSTR_VAL(filename));
+	php_stream_close(stream);*/
 
 	zend_string_release(str);
 	zend_string_release(message);
@@ -161,8 +170,8 @@ PHP_METHOD(logger, verbose)
 
 PHP_MINIT_FUNCTION(logger)
 {
+	ZEND_INIT_MODULE_GLOBALS(logger, php_logger_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
-
 	INIT_CLASS_ENTRY(ce, LOGGER_CLASS_NS_NAME, logger_methods);
 	logger_ce = zend_register_internal_class(&ce TSRMLS_CC);
 	zend_declare_property_null(logger_ce, ZEND_STRL(LOGGER_CLASS_PROPERTY_NAME), ZEND_ACC_STATIC|ZEND_ACC_PUBLIC TSRMLS_CC);
@@ -187,6 +196,7 @@ PHP_RINIT_FUNCTION(logger)
 
 PHP_RSHUTDOWN_FUNCTION(logger)
 {
+	logger_clean();
 	return SUCCESS;
 }
 
