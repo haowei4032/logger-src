@@ -25,16 +25,6 @@ static void php_logger_init_globals(zend_logger_globals *logger_globals TSRMLS_D
 
 static void logger_clean()
 {
-	/*zval *val;
-	php_stream *stream;
-	stream = php_stream_open_wrapper("/var/log/app-2018-08-11.log", "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
-	if (stream == NULL) return;
-	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(&LOGGER_G(async_stack)), val) {
-		php_stream_write(stream, Z_STRVAL(val), Z_STRLEN(val));
-	} ZEND_HASH_FOREACH_END();
-
-	php_stream_close(stream);*/
-
 	zval *val;
 	php_stream *stream;
 	stream = php_stream_open_wrapper("/var/log/app-2018-08-11.log", "ab", IGNORE_PATH|IGNORE_URL_WIN, NULL);
