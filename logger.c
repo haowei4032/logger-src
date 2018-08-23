@@ -23,6 +23,13 @@
 static void php_logger_init_globals(zend_logger_globals *logger_globals TSRMLS_DC)
 {}
 
+static zval* logger_get_variable(INTERNAL_FUNCTION_PARAMETERS)
+{
+    zval *v;
+    array_init_size(v, 0);
+    return v;
+}
+
 static void logger_begin()
 {
     zend_string *server = zend_string_init(ZEND_STRL("_SERVER"), 0);
@@ -53,18 +60,6 @@ static void logger_end()
 
 static void logger_format_line(zval *line, char *search, char *replace)
 {
-    /*zend_string *value = php_str_to_str(
-        Z_STRVAL_P(line),
-        Z_STRLEN_P(line),
-        search,
-        strlen(search),
-        replace,
-        replace_len
-    );
-    zval_ptr_dtor(line);
-    ZVAL_STR(line, value);
-    zend_string_free(value);*/
-
     char *value = string_replace(Z_STRVAL_P(line), search, replace);
     zval_ptr_dtor(line);
     ZVAL_STRING(line, value);
@@ -191,8 +186,8 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
     logger_format_line(&rv, "{request_scheme}", strcmp(Z_STRVAL_P(var), "-") == 0 ? "https" : "http" );
     //zval_ptr_dtor(var);
 
-    var = get_server_var("HTTP_X_FORWARDED_PROTO");
-    logger_format_line(&rv, "{request_scheme}", strcmp(Z_STRVAL_P(var), "-") == 0 ? "http" : Z_STRVAL_P(var) );
+    //var = get_server_var("HTTP_X_FORWARDED_PROTO");
+    //logger_format_line(&rv, "{request_scheme}", strcmp(Z_STRVAL_P(var), "-") == 0 ? "http" : Z_STRVAL_P(var) );
     //zval_ptr_dtor(var);
 
     var = get_server_var("HTTP_USER_AGENT");
@@ -252,6 +247,17 @@ static int logger_factory(INTERNAL_FUNCTION_PARAMETERS, int level)
 PHP_FUNCTION(logger_version)
 {
     RETURN_STRING(PHP_LOGGER_VERSION);
+}
+
+PHP_METHOD(logger, set)
+{
+    RETURN_NULL();
+}
+
+PHP_METHOD(logger, getVariable)
+{
+    //logger_get_variable(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+    RETURN_NULL();
 }
 
 PHP_METHOD(logger, info)

@@ -77,6 +77,8 @@ ZEND_DECLARE_MODULE_GLOBALS(logger)
 
 PHP_FUNCTION(logger_version);
 
+PHP_METHOD(logger, getVariable);
+PHP_METHOD(logger, set);
 PHP_METHOD(logger, info);
 PHP_METHOD(logger, warning);
 PHP_METHOD(logger, error);
@@ -91,6 +93,8 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 const zend_function_entry logger_methods[] = {
+    PHP_ME(logger, getVariable, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+    PHP_ME(logger, set, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
     PHP_ME(logger, info, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
     PHP_ME(logger, warning, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
     PHP_ME(logger, error, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
